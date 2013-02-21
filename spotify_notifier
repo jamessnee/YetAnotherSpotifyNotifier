@@ -9,7 +9,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 class Spotify_Notifier(object):
     def __init__(self):
         # Init outselves
-        print "initing"
+        #print "initing"
         bLoop = DBusGMainLoop(set_as_default=True)
         self.bus = dbus.SessionBus(mainloop=bLoop)
         loop = gobject.MainLoop()
