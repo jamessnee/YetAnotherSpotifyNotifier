@@ -1,0 +1,38 @@
+#!/usr/bin/python
+import sys
+import pynotify
+
+capabilities = {'actions':     False,
+        'body':                False,
+        'body-hyperlinks':     False,
+        'body-images':         False,
+        'body-markup':         False,
+        'icon-multi':          False,
+        'icon-static':         False,
+        'sound':               False,
+        'image/svg+xml':       False,
+        'private-synchronous': False,
+        'append':              False,
+        'private-icon-only':   False}
+
+def getCaps ():
+    caps = pynotify.get_server_caps ()
+    if caps is None:
+        print "Couldn't get the capabilities from the system. Exiting"
+        sys.exit (1)
+
+    for cap in caps:
+        capabilities[cap] = True
+
+def spotify_getMetaData():
+    return "Some Data"
+
+if __name__ == '__main__':
+    if not pynotify.init ("Spotify Notifier"):
+        sys.exit (1)
+
+    getCaps()
+
+    metaData = spotify_getMetaData()
+    notification = pynotify.Notification ("Spotify",metaData)
+    notification.show ()
