@@ -1,38 +1,47 @@
 #!/usr/bin/python
-import sys
+import os
+import dbus
 import pynotify
+import gobject
+from dbus.exceptions import DBusException
+from dbus.mainloop.glib import DBusGMainLoop
 
-capabilities = {'actions':     False,
-        'body':                False,
-        'body-hyperlinks':     False,
-        'body-images':         False,
-        'body-markup':         False,
-        'icon-multi':          False,
-        'icon-static':         False,
-        'sound':               False,
-        'image/svg+xml':       False,
-        'private-synchronous': False,
-        'append':              False,
-        'private-icon-only':   False}
+class Spotify_Notifier(object):
+    def __init__(self):
+        # Init outselves
+        print "initing"
+        bLoop = DBusGMainLoop(set_as_default=True)
+        self.bus = dbus.SessionBus(mainloop=bLoop)
+        loop = gobject.MainLoop()
 
-def getCaps ():
-    caps = pynotify.get_server_caps ()
-    if caps is None:
-        print "Couldn't get the capabilities from the system. Exiting"
-        sys.exit (1)
+        try:
+            self.setup_properties_listener()
+        except DBusException, e:
+            if not ("org.mpris.MediaPlayer2.spotify was not provided") in e.get_dbus_message():
+                raise
+        loop.run()
 
-    for cap in caps:
-        capabilities[cap] = True
+    def setup_properties_listener(self):
+        self.spot = self.bus.get_object("org.mpris.MediaPlayer2.spotify","/org/mpris/MediaPlayer2")
+        self.spot.connect_to_signal("PropertiesChanged",self.spotPropsChanged)
 
-def spotify_getMetaData():
-    return "Some Data"
+    def spotPropsChanged(self, interface, changed_props, invalidated_props):
+        # This is where we handle track changes
+        metadata = changed_props.get("Metadata", {})
+        if metadata:
+            artist = str(metadata["xesam:artist"][0])
+            album = metadata.get("xesam:album")
+            title = metadata.get("xesam:title")
+            message = "Artist: %s\n Album: %s\n Track: %s" % (artist,album,title)
+            self.sendNotification(title,artist,album)
+
+    def sendNotification(self, track, artist, album):
+        if not pynotify.init("Spotify"):
+            sys.exit(1)
+
+        message = artist+"\n"+album
+        notif = pynotify.Notification(track,message)
+        notif.show()
 
 if __name__ == '__main__':
-    if not pynotify.init ("Spotify Notifier"):
-        sys.exit (1)
-
-    getCaps()
-
-    metaData = spotify_getMetaData()
-    notification = pynotify.Notification ("Spotify",metaData)
-    notification.show ()
+    Spotify_Notifier()
