@@ -3,13 +3,13 @@ import os
 import dbus
 import pynotify
 import gobject
+import urllib
 from dbus.exceptions import DBusException
 from dbus.mainloop.glib import DBusGMainLoop
 
 class Spotify_Notifier(object):
     def __init__(self):
         # Init outselves
-        #print "initing"
         bLoop = DBusGMainLoop(set_as_default=True)
         self.bus = dbus.SessionBus(mainloop=bLoop)
         loop = gobject.MainLoop()
@@ -33,14 +33,23 @@ class Spotify_Notifier(object):
             album = metadata.get("xesam:album")
             title = metadata.get("xesam:title")
             message = "Artist: %s\n Album: %s\n Track: %s" % (artist,album,title)
-            self.sendNotification(title,artist,album)
+            art_url = metadata.get('mpris:artUrl')
+            self.sendNotification(title,artist,album,art_url)
 
-    def sendNotification(self, track, artist, album):
+    def sendNotification(self, track, artist, album, art_url):
         if not pynotify.init("Spotify"):
             sys.exit(1)
 
+
+	# Test whether the dir exists, if not, make it
+	user_dir = os.path.expanduser('~/.spotify_notifier/')
+	if not os.path.exists(user_dir):
+	    os.makedirs(user_dir)
+	art_path = user_dir + 'album_art.png'
+        urllib.urlretrieve(art_url, art_path)
+
         message = artist+"\n"+album
-        notif = pynotify.Notification(track,message)
+        notif = pynotify.Notification(track,message,art_path)
         notif.show()
 
 if __name__ == '__main__':
